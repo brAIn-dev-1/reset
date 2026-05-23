@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Camera, Droplets, Plus, Trash2, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { useDailyData } from '../hooks/useDailyData';
-import { analyzeMeal, analyzeWater, capturePhoto } from '../api/client';
+import { analyzeMeal, analyzeWater, capturePhoto, processPhoto } from '../api/client';
 import ProgressBar from '../components/ProgressBar';
 import type { Meal, WaterEntry } from '../types';
 import { CALORIE_GOAL, WATER_GOAL_ML, WATER_GLASS_ML } from '../types';
@@ -36,13 +36,14 @@ export default function NutritionPage() {
   const handleAddMeal = async () => {
     setMealError('');
     try {
-      const dataUrl = await capturePhoto();
+      const raw = await capturePhoto();
       setAnalyzingMeal(true);
-      const result = await analyzeMeal(dataUrl);
+      const { forStorage, forApi } = await processPhoto(raw);
+      const result = await analyzeMeal(forApi);
       const meal: Meal = {
         id: uid(),
         timestamp: new Date().toISOString(),
-        imageDataUrl: dataUrl,
+        imageDataUrl: forStorage,  // compressed thumbnail only
         description: result.description,
         calories: result.calories,
         items: result.items ?? [],
@@ -61,13 +62,14 @@ export default function NutritionPage() {
   const handlePhotoWater = async () => {
     setWaterError('');
     try {
-      const dataUrl = await capturePhoto();
+      const raw = await capturePhoto();
       setAnalyzingWater(true);
-      const result = await analyzeWater(dataUrl);
+      const { forStorage, forApi } = await processPhoto(raw);
+      const result = await analyzeWater(forApi);
       const entry: WaterEntry = {
         id: uid(),
         timestamp: new Date().toISOString(),
-        imageDataUrl: dataUrl,
+        imageDataUrl: forStorage,  // compressed thumbnail only
         amount: result.amount,
         label: result.label,
       };
