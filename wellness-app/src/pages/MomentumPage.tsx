@@ -1,11 +1,14 @@
-import { TrendingUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { TrendingUp, ChevronRight } from 'lucide-react';
 import { getLast14DatesData, getAllDays, getTargetWeight, calcStreak } from '../hooks/useDailyData';
 import type { DayData } from '../types';
 
 // ── Constants ────────────────────────────────────────────────────
 const ML_TO_OZ = 1 / 29.5735;
+// App launch date — weight chart never starts before this
+const APP_START = '2026-05-23';
 
-// ── Chart labels (14 days, oldest first) ─────────────────────────
+// ── Chart labels (14 days, oldest first) — used by bar charts ────
 function makeLabels(): string[] {
   return Array.from({ length: 14 }, (_, i) => {
     const d = new Date();
@@ -21,11 +24,48 @@ const PL = 36, PR = 8, PT = 8, PB = 20;
 const PLOT_W = W - PL - PR;
 const PLOT_H = H - PT - PB;
 const N = 14;
-const X_STEP = 3; // show a label every 3 slots
+const X_STEP = 3;
 
-const px = (i: number) => PL + (N > 1 ? (i / (N - 1)) * PLOT_W : PLOT_W / 2);
 const barX = (i: number) => PL + (i + 0.5) * (PLOT_W / N);
 const BAR_W = (PLOT_W / N) * 0.62;
+
+// ── Weight history from APP_START → today ─────────────────────────
+function getWeightHistory(): { labels: string[]; data: (number | null)[] } {
+  // Find the earliest stored date
+  const storedDates = Object.keys(localStorage)
+    .filter(k => k.startsWith('wellspace_') && !k.includes('target'))
+    .map(k => k.replace('wellspace_', ''))
+    .filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d))
+    .sort();
+
+  // Use APP_START unless we somehow have earlier data
+  const startStr = storedDates.length > 0 && storedDates[0] < APP_START
+    ? storedDates[0]
+    : APP_START;
+
+  const start = new Date(startStr + 'T00:00:00');
+  const todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
+
+  const labels: string[] = [];
+  const data: (number | null)[] = [];
+
+  const cur = new Date(start);
+  while (cur <= todayDate) {
+    const key = cur.toISOString().split('T')[0];
+    labels.push(`${cur.getMonth() + 1}/${cur.getDate()}`);
+    try {
+      const raw = localStorage.getItem(`wellspace_${key}`);
+      const day = raw ? JSON.parse(raw) : null;
+      data.push(day?.weight ?? null);
+    } catch {
+      data.push(null);
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  return { labels, data };
+}
 
 // ── Empty state ───────────────────────────────────────────────────
 function EmptyState() {
@@ -42,12 +82,19 @@ function LineChart({
   color,
   goalLine,
   yUnit = '',
+  labels: labelsOverride,
 }: {
   data: (number | null)[];
   color: string;
   goalLine?: number | null;
   yUnit?: string;
+  labels?: string[];
 }) {
+  const n = data.length || 1;
+  const chartLabels = labelsOverride ?? LABELS.slice(0, n);
+  const xStep = Math.max(1, Math.ceil(n / 5));
+  const pxFn = (i: number) => PL + (n > 1 ? (i / (n - 1)) * PLOT_W : PLOT_W / 2);
+
   const valid = data.filter((v): v is number => v !== null);
   if (valid.length === 0) return <EmptyState />;
 
@@ -66,7 +113,9 @@ function LineChart({
   let gapped = true;
   data.forEach((v, i) => {
     if (v === null) { gapped = true; return; }
-    pathD += gapped ? `M ${px(i).toFixed(1)} ${py(v).toFixed(1)} ` : `L ${px(i).toFixed(1)} ${py(v).toFixed(1)} `;
+    pathD += gapped
+      ? `M ${pxFn(i).toFixed(1)} ${py(v).toFixed(1)} `
+      : `L ${pxFn(i).toFixed(1)} ${py(v).toFixed(1)} `;
     gapped = false;
   });
 
@@ -104,13 +153,13 @@ function LineChart({
 
       {/* Dots */}
       {data.map((v, i) => v !== null && (
-        <circle key={i} cx={px(i)} cy={py(v)} r="3"
+        <circle key={i} cx={pxFn(i)} cy={py(v)} r="3"
           fill="white" stroke={color} strokeWidth="2" />
       ))}
 
       {/* X labels */}
-      {LABELS.map((l, i) => (i % X_STEP === 0 || i === N - 1) && (
-        <text key={i} x={px(i)} y={H - 3} textAnchor="middle" fontSize="7" fill="#cbd5e1">
+      {chartLabels.map((l, i) => (i % xStep === 0 || i === n - 1) && (
+        <text key={i} x={pxFn(i)} y={H - 3} textAnchor="middle" fontSize="7" fill="#cbd5e1">
           {l}
         </text>
       ))}
@@ -181,21 +230,34 @@ function StreakDots({
   );
 }
 
-// ── Chart card wrapper ────────────────────────────────────────────
+// ── Chart card wrapper (tappable) ─────────────────────────────────
 function ChartCard({
   title,
   subtitle,
   children,
+  to,
 }: {
   title: string;
   subtitle?: string;
   children: React.ReactNode;
+  to?: string;
 }) {
+  const navigate = useNavigate();
   return (
-    <div className="bg-white rounded-3xl p-5 shadow-sm border border-stone-100">
-      <h3 className="font-bold text-stone-800 text-base leading-tight">{title}</h3>
-      {subtitle && <p className="text-xs text-stone-400 mt-0.5 mb-3">{subtitle}</p>}
-      {!subtitle && <div className="mb-3" />}
+    <div
+      className={`bg-white rounded-3xl p-5 shadow-sm border border-stone-100 ${
+        to ? 'cursor-pointer active:scale-[0.98] transition-transform select-none' : ''
+      }`}
+      onClick={to ? () => navigate(to) : undefined}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <h3 className="font-bold text-stone-800 text-base leading-tight">{title}</h3>
+          {subtitle && <p className="text-xs text-stone-400 mt-0.5 mb-3">{subtitle}</p>}
+          {!subtitle && <div className="mb-3" />}
+        </div>
+        {to && <ChevronRight size={16} className="text-stone-300 flex-shrink-0 mt-0.5" />}
+      </div>
       {children}
     </div>
   );
@@ -207,14 +269,16 @@ function StreakCard({
   streak,
   data,
   field,
+  to,
 }: {
   title: string;
   streak: number;
   data: (DayData | null)[];
   field: 'cardio' | 'stretched' | 'resistance';
+  to?: string;
 }) {
   return (
-    <ChartCard title={title}>
+    <ChartCard title={title} to={to}>
       <div className="flex items-baseline gap-2">
         <span className="text-4xl font-bold text-stone-800 tabular-nums">{streak}</span>
         <span className="text-stone-500 font-medium">
@@ -299,7 +363,7 @@ function generateYesterdaySummary(yesterday: DayData | null): string {
 
   if (waterMl >= 2000)            wins.push('hydration');
   else if (waterMl > 0)           focus.push('water');
-  else if (waterMl === 0)         focus.push('water');
+  else                            focus.push('water');
 
   if (medMins >= 10)              wins.push('meditation');
   else                            focus.push('meditation');
@@ -330,9 +394,10 @@ export default function MomentumPage() {
     weekday: 'long', month: 'long', day: 'numeric',
   });
 
-  // ── Data series ────────────────────────────────────────────────
-  const weightData = last14.map(d => d?.weight ?? null);
+  // ── Weight data from app launch date ──────────────────────────
+  const weightHistory = getWeightHistory();
 
+  // ── Rolling 14-day data series ────────────────────────────────
   const calorieData = last14.map(d => {
     if (!d) return null;
     const t = d.meals.reduce((s, m) => s + m.calories, 0);
@@ -351,7 +416,7 @@ export default function MomentumPage() {
   });
 
   // ── Summaries ──────────────────────────────────────────────────
-  const validWeights = weightData.filter((v): v is number => v !== null);
+  const validWeights = weightHistory.data.filter((v): v is number => v !== null);
   const latestWeight = validWeights.at(-1) ?? null;
 
   const avgCals  = avg(calorieData);
@@ -376,7 +441,7 @@ export default function MomentumPage() {
       ? latestWeight > targetWeight
         ? `${latestWeight} lbs → ${Math.round(latestWeight - targetWeight)} lbs to goal (${targetWeight} lbs)`
         : `${latestWeight} lbs — 🎯 Goal reached! (${targetWeight} lbs)`
-      : `Latest: ${latestWeight} lbs · Set a goal on the Move tab`
+      : `${latestWeight} lbs · Set a goal on the Body tab`
     : 'No weight logged yet';
 
   return (
@@ -405,57 +470,69 @@ export default function MomentumPage() {
       </div>
 
       <div className="px-4 pt-5 space-y-4">
-        {/* 1. Weight */}
-        <ChartCard title="Weight" subtitle={weightSubtitle}>
-          <LineChart data={weightData} color="#10b981" goalLine={targetWeight} yUnit=" lbs" />
+        {/* 1. Weight — starts from May 23, navigates to Body */}
+        <ChartCard title="Weight" subtitle={weightSubtitle} to="/body">
+          <LineChart
+            data={weightHistory.data}
+            labels={weightHistory.labels}
+            color="#10b981"
+            goalLine={targetWeight}
+            yUnit=" lbs"
+          />
         </ChartCard>
 
-        {/* 2. Calories */}
+        {/* 2. Calories — navigates to Nutrition */}
         <ChartCard
           title="Calories per Day"
           subtitle={avgCals ? `14-day avg: ${avgCals.toLocaleString()} kcal` : 'No meals logged yet'}
+          to="/nutrition"
         >
           <BarChart data={calorieData} color="#FF6D2A" />
         </ChartCard>
 
-        {/* 3. Water */}
+        {/* 3. Water — navigates to Nutrition */}
         <ChartCard
           title="Water per Day"
           subtitle={avgWater ? `14-day avg: ${avgWater} oz/day` : 'No water logged yet'}
+          to="/nutrition"
         >
           <BarChart data={waterOzData} color="#0EA5E9" />
         </ChartCard>
 
-        {/* 4. Meditation */}
+        {/* 4. Meditation — navigates to Mind */}
         <ChartCard
           title="Meditation per Day"
           subtitle={totalMed ? `Last 14 days: ${totalMed} min total` : 'No sessions logged yet'}
+          to="/mind"
         >
           <BarChart data={meditationData} color="#A855F7" />
         </ChartCard>
 
-        {/* 5. Stretching streak */}
+        {/* 5. Stretching streak — navigates to Body */}
         <StreakCard
           title="Stretching Streak"
           streak={stretchStreak}
           data={last14}
           field="stretched"
+          to="/body"
         />
 
-        {/* 6. Cardio streak */}
+        {/* 6. Cardio streak — navigates to Body */}
         <StreakCard
           title="Cardio Streak"
           streak={cardioStreak}
           data={last14}
           field="cardio"
+          to="/body"
         />
 
-        {/* 7. Resistance streak */}
+        {/* 7. Resistance streak — navigates to Body */}
         <StreakCard
           title="Resistance Training Streak"
           streak={resistanceStreak}
           data={last14}
           field="resistance"
+          to="/body"
         />
       </div>
     </div>

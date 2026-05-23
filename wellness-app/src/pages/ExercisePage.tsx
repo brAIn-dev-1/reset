@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Scale, Flame, PersonStanding, Dumbbell, Check, X, Target } from 'lucide-react';
+import { Scale, Flame, PersonStanding, Dumbbell, Check, X, Target, Pencil } from 'lucide-react';
 import { useDailyData, getAllDays, getTargetWeight, saveTargetWeight } from '../hooks/useDailyData';
 
 type YesNo = boolean | null;
@@ -91,7 +91,7 @@ export default function ExercisePage() {
   const [weightInput, setWeightInput] = useState(data.weight?.toString() ?? '');
   const [weightSaved, setWeightSaved] = useState(!!data.weight);
   const [targetInput, setTargetInput] = useState(getTargetWeight()?.toString() ?? '');
-  const [targetSaved, setTargetSaved] = useState(!!getTargetWeight());
+  const [editingTarget, setEditingTarget] = useState(false);
 
   const handleSaveWeight = () => {
     const w = parseFloat(weightInput);
@@ -105,11 +105,12 @@ export default function ExercisePage() {
     const w = parseFloat(targetInput);
     if (!isNaN(w) && w > 0) {
       saveTargetWeight(w);
-      setTargetSaved(true);
+      setEditingTarget(false);
     }
   };
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const target = getTargetWeight();
 
   const activityScore = [data.cardio, data.stretched, data.resistance].filter(v => v === true).length;
   const subtitle = activityScore === 0
@@ -121,10 +122,55 @@ export default function ExercisePage() {
   return (
     <div className="min-h-screen bg-emerald-50 pb-24">
       {/* Header */}
-      <div className="bg-gradient-to-br from-emerald-500 to-emerald-400 px-6 pt-14 pb-8 text-white" style={{ paddingTop: 'max(3.5rem, env(safe-area-inset-top))' }}>
+      <div
+        className="bg-gradient-to-br from-emerald-500 to-emerald-400 px-6 pb-8 text-white"
+        style={{ paddingTop: 'max(3.5rem, env(safe-area-inset-top))' }}
+      >
         <p className="text-emerald-100 text-sm font-medium mb-1">{today}</p>
         <h1 className="text-3xl font-bold">Body</h1>
         <p className="text-emerald-100 text-sm mt-1">{subtitle}</p>
+
+        {/* Target weight — inline edit */}
+        <div className="mt-3">
+          {editingTarget ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                inputMode="decimal"
+                value={targetInput}
+                onChange={e => setTargetInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSaveTarget()}
+                placeholder="Goal weight"
+                autoFocus
+                className="bg-white/20 text-white placeholder-emerald-200 rounded-xl px-3 py-2 text-sm w-28 focus:outline-none focus:ring-2 focus:ring-white/40"
+              />
+              <span className="text-emerald-200 text-sm">lbs</span>
+              <button
+                onClick={handleSaveTarget}
+                className="bg-white/20 hover:bg-white/30 text-white rounded-xl px-4 py-2 text-sm font-semibold transition-colors"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => { setTargetInput(target?.toString() ?? ''); setEditingTarget(false); }}
+                className="text-emerald-200 hover:text-white transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setEditingTarget(true)}
+              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 rounded-xl px-3 py-2 transition-colors"
+            >
+              <Target size={14} className="text-emerald-200" />
+              <span className="text-white/80 text-sm font-medium">
+                {target ? `Goal: ${target} lbs` : 'Set goal weight'}
+              </span>
+              <Pencil size={13} className="text-emerald-300" />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="px-4 pt-5 space-y-5">
@@ -160,44 +206,11 @@ export default function ExercisePage() {
               <Check size={18} />
             </button>
           </div>
-        </section>
 
-        {/* Target Weight */}
-        <section className="bg-white rounded-3xl p-5 shadow-sm border border-stone-100">
-          <div className="flex items-center gap-2 mb-4">
-            <Target size={20} className="text-emerald-500" />
-            <h2 className="text-lg font-bold text-stone-800">Target Weight</h2>
-          </div>
-
-          {targetSaved && (
-            <div className="flex items-baseline gap-1 mb-3">
-              <span className="text-3xl font-bold text-emerald-600">{getTargetWeight()}</span>
-              <span className="text-stone-400 font-medium">lbs goal</span>
-            </div>
-          )}
-
-          <div className="flex gap-3">
-            <input
-              type="number"
-              inputMode="decimal"
-              value={targetInput}
-              onChange={e => { setTargetInput(e.target.value); setTargetSaved(false); }}
-              placeholder={targetSaved ? getTargetWeight()?.toString() : 'Set goal weight'}
-              className="flex-1 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-stone-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
-            />
-            <span className="self-center text-stone-400 font-medium text-sm">lbs</span>
-            <button
-              onClick={handleSaveTarget}
-              disabled={!targetInput || targetSaved}
-              className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-2xl px-5 py-3 transition-colors disabled:opacity-40"
-            >
-              <Check size={18} />
-            </button>
-          </div>
-          {data.weight && getTargetWeight() && (
+          {data.weight && target && (
             <p className="text-xs text-stone-400 mt-2">
-              {data.weight > getTargetWeight()!
-                ? `${Math.round(data.weight - getTargetWeight()!)} lbs to goal`
+              {data.weight > target
+                ? `${Math.round(data.weight - target)} lbs to goal`
                 : '🎯 At or below goal weight!'}
             </p>
           )}
