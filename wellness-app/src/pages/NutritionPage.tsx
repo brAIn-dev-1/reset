@@ -112,8 +112,8 @@ export default function NutritionPage() {
             <ProgressBar
               value={totalCalories}
               max={CALORIE_GOAL}
-              color="bg-white"
-              overColor="bg-red-300"
+              color="bg-emerald-400"
+              overColor="bg-red-400"
               label="Calories"
               unit="kcal"
               showOver

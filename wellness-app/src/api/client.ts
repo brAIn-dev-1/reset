@@ -83,14 +83,27 @@ export function capturePhoto(): Promise<string> {
     input.type = 'file';
     input.accept = 'image/*';
 
-    input.onchange = () => {
+    // iOS Safari requires the input to be in the DOM before .click() is called,
+    // otherwise the first tap is silently swallowed.
+    input.style.cssText = 'position:fixed;top:-200px;left:-200px;opacity:0;';
+    document.body.appendChild(input);
+
+    const cleanup = () => { input.parentNode?.removeChild(input); };
+
+    input.addEventListener('change', () => {
       const file = input.files?.[0];
+      cleanup();
       if (!file) return reject(new Error('No file selected'));
       const reader = new FileReader();
       reader.onload = e => resolve(e.target?.result as string);
       reader.onerror = reject;
       reader.readAsDataURL(file);
-    };
+    });
+
+    input.addEventListener('cancel', () => {
+      cleanup();
+      reject(new Error('No file selected'));
+    });
 
     input.click();
   });
