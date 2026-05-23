@@ -236,6 +236,90 @@ function avg(arr: (number | null)[]): number | null {
   return valid.length ? Math.round(valid.reduce((a, b) => a + b, 0) / valid.length) : null;
 }
 
+// ── Daily rotating message ────────────────────────────────────────
+const DAILY_MESSAGES = [
+  "Welcome back. Keep going.",
+  "Every rep counts. Every bite matters.",
+  "Progress is built one day at a time.",
+  "You showed up. That's what counts.",
+  "Small steps, big momentum.",
+  "Consistency is the real superpower.",
+  "Today is another chance to feel great.",
+  "Your future self is cheering you on.",
+  "Build the habit. Trust the process.",
+  "Strength grows from showing up.",
+  "Every healthy choice adds up.",
+  "You're closer than you think.",
+  "Movement, nourishment, mindfulness — you've got this.",
+  "One day at a time. One choice at a time.",
+  "Progress, not perfection.",
+  "Take care of your body — it's the only place you live.",
+  "Good habits are worth more than motivation.",
+  "Rest when you need to. Push when you can.",
+  "Every step forward counts.",
+  "Health is wealth. Keep investing.",
+  "Today's effort is tomorrow's result.",
+  "Be the person your future self will thank.",
+  "Momentum is built, not found.",
+  "Fuel well. Move often. Rest deeply.",
+  "Celebrate the small wins.",
+  "Discipline is remembering what you want.",
+  "Keep going. You're doing better than you think.",
+  "The best investment you can make is in yourself.",
+  "Show up for yourself today.",
+  "Greatness is just consistency over time.",
+];
+
+function getDailyMessage(): string {
+  const start = new Date(new Date().getFullYear(), 0, 0).getTime();
+  const dayOfYear = Math.floor((Date.now() - start) / 86_400_000);
+  return DAILY_MESSAGES[dayOfYear % DAILY_MESSAGES.length];
+}
+
+// ── Yesterday summary ─────────────────────────────────────────────
+function generateYesterdaySummary(yesterday: DayData | null): string {
+  if (!yesterday) return "No data from yesterday — today's a fresh start!";
+
+  const cals    = yesterday.meals.reduce((s, m) => s + m.calories, 0);
+  const waterMl = yesterday.waterEntries.reduce((s, w) => s + w.amount, 0);
+  const medMins = yesterday.meditationMinutes;
+  const exerciseDone = [yesterday.cardio, yesterday.stretched, yesterday.resistance]
+    .filter(v => v === true).length;
+  const exerciseLogged = [yesterday.cardio, yesterday.stretched, yesterday.resistance]
+    .filter(v => v !== null).length;
+
+  const hasAnyData = cals > 0 || waterMl > 0 || medMins > 0 || exerciseLogged > 0 || yesterday.weight != null;
+  if (!hasAnyData) return "Nothing logged yesterday — keep building the habit!";
+
+  const wins: string[] = [];
+  const focus: string[] = [];
+
+  if (cals > 0 && cals <= 2000)  wins.push('diet');
+  else if (cals > 2000)           focus.push('calories');
+
+  if (waterMl >= 2000)            wins.push('hydration');
+  else if (waterMl > 0)           focus.push('water');
+  else if (waterMl === 0)         focus.push('water');
+
+  if (medMins >= 10)              wins.push('meditation');
+  else                            focus.push('meditation');
+
+  if (exerciseDone >= 2)          wins.push('exercise');
+  else if (exerciseLogged > 0 && exerciseDone < 2) focus.push('movement');
+
+  let msg: string;
+  if (wins.length > 0 && focus.length > 0) {
+    msg = `${wins.slice(0, 2).join(' & ')} on track — focus on ${focus[0]} today`;
+  } else if (wins.length > 0) {
+    msg = `Strong day — ${wins.join(', ')} all solid. Keep it up!`;
+  } else {
+    msg = `Work on ${focus.slice(0, 2).join(' and ')} today`;
+  }
+
+  msg = msg.charAt(0).toUpperCase() + msg.slice(1);
+  return msg.length > 100 ? msg.slice(0, 97) + '…' : msg;
+}
+
 // ── Main Page ─────────────────────────────────────────────────────
 export default function MomentumPage() {
   const last14 = getLast14DatesData();       // null | DayData[], index 0 = oldest
@@ -281,6 +365,11 @@ export default function MomentumPage() {
   const cardioStreak     = calcStreak(allDays, 'cardio');
   const resistanceStreak = calcStreak(allDays, 'resistance');
 
+  // ── Daily insight ──────────────────────────────────────────────
+  const dailyMessage     = getDailyMessage();
+  const yesterday        = last14[12] ?? null; // index 12 = yesterday
+  const yesterdaySummary = generateYesterdaySummary(yesterday);
+
   // ── Weight subtitle ────────────────────────────────────────────
   const weightSubtitle = latestWeight
     ? targetWeight
@@ -298,11 +387,21 @@ export default function MomentumPage() {
         style={{ paddingTop: 'max(3.5rem, env(safe-area-inset-top))' }}
       >
         <p className="text-slate-400 text-sm font-medium mb-1">{today}</p>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 mb-5">
           <TrendingUp size={26} className="text-orange-400" />
           <h1 className="text-3xl font-bold">Momentum</h1>
         </div>
-        <p className="text-slate-400 text-sm mt-1">Your journey at a glance</p>
+
+        {/* Daily insight card */}
+        <div className="bg-white/10 rounded-2xl p-4 space-y-3">
+          <p className="text-white font-semibold text-base leading-snug">
+            {dailyMessage}
+          </p>
+          <div className="h-px bg-white/15" />
+          <p className="text-slate-300 text-sm leading-relaxed">
+            {yesterdaySummary}
+          </p>
+        </div>
       </div>
 
       <div className="px-4 pt-5 space-y-4">
