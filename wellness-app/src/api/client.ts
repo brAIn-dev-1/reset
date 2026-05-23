@@ -24,33 +24,21 @@ function extractBase64(dataUrl: string): string {
 }
 
 /**
- * Resize + re-encode a photo to a thumbnail for localStorage (~20-40 KB)
- * and a full-quality version for the API call (~300 KB).
- * iPhone photos can be 5-10 MB; we compress aggressively for storage.
+ * Resize the photo to max 1200px and re-encode at 85% quality before
+ * sending to the Claude API. The original and resized image are both
+ * discarded after the API call — nothing is saved to localStorage.
  */
-export function processPhoto(dataUrl: string): Promise<{ forStorage: string; forApi: string }> {
+export function resizeForApi(dataUrl: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
-      // --- thumbnail for localStorage (max 400px wide, quality 0.6) ---
-      const thumbCanvas = document.createElement('canvas');
-      const thumbMax = 400;
-      const thumbScale = Math.min(1, thumbMax / Math.max(img.width, img.height));
-      thumbCanvas.width  = Math.round(img.width  * thumbScale);
-      thumbCanvas.height = Math.round(img.height * thumbScale);
-      thumbCanvas.getContext('2d')!.drawImage(img, 0, 0, thumbCanvas.width, thumbCanvas.height);
-      const forStorage = thumbCanvas.toDataURL('image/jpeg', 0.6);
-
-      // --- API copy (max 1200px wide, quality 0.85) — good enough for Claude ---
-      const apiCanvas = document.createElement('canvas');
-      const apiMax = 1200;
-      const apiScale = Math.min(1, apiMax / Math.max(img.width, img.height));
-      apiCanvas.width  = Math.round(img.width  * apiScale);
-      apiCanvas.height = Math.round(img.height * apiScale);
-      apiCanvas.getContext('2d')!.drawImage(img, 0, 0, apiCanvas.width, apiCanvas.height);
-      const forApi = apiCanvas.toDataURL('image/jpeg', 0.85);
-
-      resolve({ forStorage, forApi });
+      const canvas = document.createElement('canvas');
+      const max = 1200;
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      canvas.width  = Math.round(img.width  * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', 0.85));
     };
     img.onerror = reject;
     img.src = dataUrl;

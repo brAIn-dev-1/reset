@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Camera, Droplets, Plus, Trash2, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { Camera, Droplets, Plus, Trash2, ChevronDown, ChevronUp, Loader2, UtensilsCrossed } from 'lucide-react';
 import { useDailyData } from '../hooks/useDailyData';
-import { analyzeMeal, analyzeWater, capturePhoto, processPhoto } from '../api/client';
+import { analyzeMeal, analyzeWater, capturePhoto, resizeForApi } from '../api/client';
 import ProgressBar from '../components/ProgressBar';
 import type { Meal, WaterEntry } from '../types';
 import { CALORIE_GOAL, WATER_GOAL_ML, WATER_GLASS_ML } from '../types';
@@ -38,12 +38,12 @@ export default function NutritionPage() {
     try {
       const raw = await capturePhoto();
       setAnalyzingMeal(true);
-      const { forStorage, forApi } = await processPhoto(raw);
-      const result = await analyzeMeal(forApi);
+      const apiImage = await resizeForApi(raw);   // resize for Claude
+      const result = await analyzeMeal(apiImage); // apiImage discarded after this
       const meal: Meal = {
         id: uid(),
         timestamp: new Date().toISOString(),
-        imageDataUrl: forStorage,  // compressed thumbnail only
+        imageDataUrl: '',  // not stored — photo discarded after estimation
         description: result.description,
         calories: result.calories,
         items: result.items ?? [],
@@ -64,12 +64,12 @@ export default function NutritionPage() {
     try {
       const raw = await capturePhoto();
       setAnalyzingWater(true);
-      const { forStorage, forApi } = await processPhoto(raw);
-      const result = await analyzeWater(forApi);
+      const apiImage = await resizeForApi(raw);
+      const result = await analyzeWater(apiImage); // apiImage discarded after this
       const entry: WaterEntry = {
         id: uid(),
         timestamp: new Date().toISOString(),
-        imageDataUrl: forStorage,  // compressed thumbnail only
+        imageDataUrl: undefined,  // not stored
         amount: result.amount,
         label: result.label,
       };
@@ -143,14 +143,12 @@ export default function NutritionPage() {
           <div className="space-y-3">
             {data.meals.map(meal => (
               <div key={meal.id} className="bg-white rounded-3xl overflow-hidden shadow-sm border border-stone-100">
-                <div className="flex items-center gap-3 p-3">
-                  <img
-                    src={meal.imageDataUrl}
-                    alt={meal.description}
-                    className="w-16 h-16 rounded-2xl object-cover flex-shrink-0"
-                  />
+                <div className="flex items-center gap-3 p-4">
+                  <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+                    <UtensilsCrossed size={20} className="text-orange-300" />
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-stone-800 text-sm leading-tight truncate">{meal.description}</p>
+                    <p className="font-semibold text-stone-800 text-sm leading-tight">{meal.description}</p>
                     <p className="text-xs text-stone-400 mt-0.5">{formatTime(meal.timestamp)}</p>
                     <p className="text-orange-500 font-bold text-sm mt-0.5">{meal.calories} kcal</p>
                   </div>
