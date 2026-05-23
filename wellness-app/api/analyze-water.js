@@ -2,12 +2,14 @@ import Anthropic from '@anthropic-ai/sdk';
 
 export const config = {
   api: { bodyParser: { sizeLimit: '20mb' } },
+  maxDuration: 30,
 };
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) return res.status(500).json({ error: 'ANTHROPIC_API_KEY is not set in environment variables' });
 
   const { imageBase64, mimeType = 'image/jpeg' } = req.body ?? {};
   if (!imageBase64) return res.status(400).json({ error: 'No image provided' });
@@ -17,6 +19,7 @@ export default async function handler(req, res) {
     : 'image/jpeg';
 
   try {
+    const anthropic = new Anthropic({ apiKey: key });
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 512,
@@ -46,7 +49,7 @@ No markdown, just raw JSON.`,
     if (!jsonMatch) throw new Error('No JSON in response');
     res.json(JSON.parse(jsonMatch[0]));
   } catch (err) {
-    console.error('Water analysis error:', err);
-    res.status(500).json({ error: 'Failed to analyze water' });
+    console.error('Water analysis error:', err?.message ?? err);
+    res.status(500).json({ error: err?.message ?? 'Failed to analyze water' });
   }
 }

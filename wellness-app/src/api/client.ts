@@ -54,7 +54,10 @@ export async function analyzeMeal(imageDataUrl: string): Promise<MealAnalysis> {
       mimeType: 'image/jpeg',
     }),
   });
-  if (!res.ok) throw new Error('Meal analysis failed');
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`${res.status}: ${body || res.statusText}`);
+  }
   return res.json();
 }
 
@@ -67,7 +70,10 @@ export async function analyzeWater(imageDataUrl: string): Promise<WaterAnalysis>
       mimeType: 'image/jpeg',
     }),
   });
-  if (!res.ok) throw new Error('Water analysis failed');
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`${res.status}: ${body || res.statusText}`);
+  }
   return res.json();
 }
 

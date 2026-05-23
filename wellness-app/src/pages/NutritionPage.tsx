@@ -51,8 +51,10 @@ export default function NutritionPage() {
       };
       addMeal(meal);
     } catch (err) {
-      if ((err as Error).message !== 'No file selected') {
-        setMealError('Could not analyze photo. Please try again.');
+      const msg = (err as Error).message;
+      if (msg !== 'No file selected') {
+        console.error('Meal analysis error:', msg);
+        setMealError(`Analysis failed: ${msg}`);
       }
     } finally {
       setAnalyzingMeal(false);
@@ -76,8 +78,10 @@ export default function NutritionPage() {
       addWater(entry);
       setShowQuickWater(false);
     } catch (err) {
-      if ((err as Error).message !== 'No file selected') {
-        setWaterError('Could not analyze photo. Please try again.');
+      const msg = (err as Error).message;
+      if (msg !== 'No file selected') {
+        console.error('Water analysis error:', msg);
+        setWaterError(`Analysis failed: ${msg}`);
       }
     } finally {
       setAnalyzingWater(false);
