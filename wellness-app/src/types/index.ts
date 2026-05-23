@@ -26,6 +26,9 @@ export interface DayData {
   cardio: boolean | null;
   stretched: boolean | null;
   resistance: boolean | null;
+  connection: boolean | null;
+  helpedSomeone: boolean | null;
+  volunteered: boolean | null;
 }
 
 export const CALORIE_GOAL = 2000;

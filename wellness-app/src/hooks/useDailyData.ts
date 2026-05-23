@@ -13,6 +13,9 @@ const DEFAULT_DAY = (date: string): DayData => ({
   cardio: null,
   stretched: null,
   resistance: null,
+  connection: null,
+  helpedSomeone: null,
+  volunteered: null,
 });
 
 function loadDay(date: string): DayData {
@@ -134,7 +137,10 @@ export function saveTargetWeight(w: number): void {
 
 // ── Streak helpers ───────────────────────────────────────────────
 /** Days sorted newest-first. Skips null (not logged) days, breaks on false. */
-export function calcStreak(allDays: DayData[], field: 'cardio' | 'stretched' | 'resistance'): number {
+export function calcStreak(
+  allDays: DayData[],
+  field: 'cardio' | 'stretched' | 'resistance' | 'connection' | 'helpedSomeone' | 'volunteered',
+): number {
   let streak = 0;
   for (const d of allDays) {
     if (d[field] === true) streak++;

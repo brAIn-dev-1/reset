@@ -1,11 +1,12 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { TrendingUp, Salad, Brain, Dumbbell } from 'lucide-react';
+import { TrendingUp, Salad, Brain, Dumbbell, Users } from 'lucide-react';
 
 const tabs = [
-  { to: '/',          icon: TrendingUp, label: 'Momentum',  exact: true  },
-  { to: '/nutrition', icon: Salad,      label: 'Nutrition', exact: false },
-  { to: '/mind',      icon: Brain,      label: 'Mind',      exact: false },
-  { to: '/move',      icon: Dumbbell,   label: 'Move',      exact: false },
+  { to: '/',           icon: TrendingUp, label: 'Momentum',  exact: true  },
+  { to: '/nutrition',  icon: Salad,      label: 'Nutrition', exact: false },
+  { to: '/mind',       icon: Brain,      label: 'Mind',      exact: false },
+  { to: '/body',       icon: Dumbbell,   label: 'Body',      exact: false },
+  { to: '/community',  icon: Users,      label: 'Community', exact: false },
 ];
 
 export default function BottomNav() {
@@ -27,8 +28,8 @@ export default function BottomNav() {
                 active ? 'text-orange-500' : 'text-stone-400'
               }`}
             >
-              <Icon size={20} strokeWidth={active ? 2.5 : 1.8} />
-              <span className="text-[9px] font-semibold tracking-wide">{label}</span>
+              <Icon size={19} strokeWidth={active ? 2.5 : 1.8} />
+              <span className="text-[8px] font-semibold tracking-wide">{label}</span>
             </NavLink>
           );
         })}

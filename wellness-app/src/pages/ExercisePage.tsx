@@ -123,7 +123,7 @@ export default function ExercisePage() {
       {/* Header */}
       <div className="bg-gradient-to-br from-emerald-500 to-emerald-400 px-6 pt-14 pb-8 text-white" style={{ paddingTop: 'max(3.5rem, env(safe-area-inset-top))' }}>
         <p className="text-emerald-100 text-sm font-medium mb-1">{today}</p>
-        <h1 className="text-3xl font-bold">Move</h1>
+        <h1 className="text-3xl font-bold">Body</h1>
         <p className="text-emerald-100 text-sm mt-1">{subtitle}</p>
       </div>
 
