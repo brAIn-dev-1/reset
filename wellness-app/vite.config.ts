@@ -23,6 +23,14 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        // Never let the service worker intercept API calls
+        navigateFallbackDenylist: [/^\/api\//],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/[^/]+\/api\//,
+            handler: 'NetworkOnly',
+          },
+        ],
       },
     }),
   ],
