@@ -1,30 +1,34 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Salad, Brain, Dumbbell } from 'lucide-react';
+import { TrendingUp, Salad, Brain, Dumbbell } from 'lucide-react';
 
 const tabs = [
-  { to: '/', icon: Salad, label: 'Nutrition' },
-  { to: '/mind', icon: Brain, label: 'Mind' },
-  { to: '/move', icon: Dumbbell, label: 'Move' },
+  { to: '/',          icon: TrendingUp, label: 'Momentum',  exact: true  },
+  { to: '/nutrition', icon: Salad,      label: 'Nutrition', exact: false },
+  { to: '/mind',      icon: Brain,      label: 'Mind',      exact: false },
+  { to: '/move',      icon: Dumbbell,   label: 'Move',      exact: false },
 ];
 
 export default function BottomNav() {
-  const location = useLocation();
+  const { pathname } = useLocation();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-stone-100" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+    <nav
+      className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-stone-100"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
       <div className="flex">
-        {tabs.map(({ to, icon: Icon, label }) => {
-          const isActive = to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
+        {tabs.map(({ to, icon: Icon, label, exact }) => {
+          const active = exact ? pathname === to : pathname.startsWith(to);
           return (
             <NavLink
               key={to}
               to={to}
-              className={`flex-1 flex flex-col items-center gap-0.5 py-3 transition-colors ${
-                isActive ? 'text-orange-500' : 'text-stone-400'
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 transition-colors ${
+                active ? 'text-orange-500' : 'text-stone-400'
               }`}
             >
-              <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
-              <span className="text-[10px] font-semibold tracking-wide">{label}</span>
+              <Icon size={20} strokeWidth={active ? 2.5 : 1.8} />
+              <span className="text-[9px] font-semibold tracking-wide">{label}</span>
             </NavLink>
           );
         })}

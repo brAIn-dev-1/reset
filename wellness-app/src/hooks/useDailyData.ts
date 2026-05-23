@@ -98,3 +98,48 @@ export function getAllDays(): DayData[] {
     .reverse()
     .map(date => loadDay(date));
 }
+
+/** Returns exactly 14 entries (oldest → newest) aligned to the last 14 calendar days.
+ *  Days with no localStorage entry are null. */
+export function getLast14DatesData(): (DayData | null)[] {
+  const dayMap = new Map<string, DayData>();
+  Object.keys(localStorage)
+    .filter(k => k.startsWith('wellspace_'))
+    .forEach(k => {
+      const date = k.replace('wellspace_', '');
+      try { dayMap.set(date, JSON.parse(localStorage.getItem(k)!)); } catch { /* skip */ }
+    });
+
+  const result: (DayData | null)[] = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    result.push(dayMap.get(key) ?? null);
+  }
+  return result; // index 0 = 13 days ago, index 13 = today
+}
+
+// ── Target weight ────────────────────────────────────────────────
+const TW_KEY = 'wellspace_target_weight';
+
+export function getTargetWeight(): number | null {
+  const v = localStorage.getItem(TW_KEY);
+  return v ? parseFloat(v) : null;
+}
+
+export function saveTargetWeight(w: number): void {
+  localStorage.setItem(TW_KEY, String(w));
+}
+
+// ── Streak helpers ───────────────────────────────────────────────
+/** Days sorted newest-first. Skips null (not logged) days, breaks on false. */
+export function calcStreak(allDays: DayData[], field: 'cardio' | 'stretched' | 'resistance'): number {
+  let streak = 0;
+  for (const d of allDays) {
+    if (d[field] === true) streak++;
+    else if (d[field] === false) break;
+    // null = never opened app that day → don't break, don't count
+  }
+  return streak;
+}

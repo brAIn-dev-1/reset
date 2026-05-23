@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Scale, Flame, PersonStanding, Dumbbell, Check, X } from 'lucide-react';
-import { useDailyData, getAllDays } from '../hooks/useDailyData';
+import { Scale, Flame, PersonStanding, Dumbbell, Check, X, Target } from 'lucide-react';
+import { useDailyData, getAllDays, getTargetWeight, saveTargetWeight } from '../hooks/useDailyData';
 
 type YesNo = boolean | null;
 
@@ -90,12 +90,22 @@ export default function ExercisePage() {
   const { data, update } = useDailyData();
   const [weightInput, setWeightInput] = useState(data.weight?.toString() ?? '');
   const [weightSaved, setWeightSaved] = useState(!!data.weight);
+  const [targetInput, setTargetInput] = useState(getTargetWeight()?.toString() ?? '');
+  const [targetSaved, setTargetSaved] = useState(!!getTargetWeight());
 
   const handleSaveWeight = () => {
     const w = parseFloat(weightInput);
     if (!isNaN(w) && w > 0) {
       update({ weight: w });
       setWeightSaved(true);
+    }
+  };
+
+  const handleSaveTarget = () => {
+    const w = parseFloat(targetInput);
+    if (!isNaN(w) && w > 0) {
+      saveTargetWeight(w);
+      setTargetSaved(true);
     }
   };
 
@@ -150,6 +160,47 @@ export default function ExercisePage() {
               <Check size={18} />
             </button>
           </div>
+        </section>
+
+        {/* Target Weight */}
+        <section className="bg-white rounded-3xl p-5 shadow-sm border border-stone-100">
+          <div className="flex items-center gap-2 mb-4">
+            <Target size={20} className="text-emerald-500" />
+            <h2 className="text-lg font-bold text-stone-800">Target Weight</h2>
+          </div>
+
+          {targetSaved && (
+            <div className="flex items-baseline gap-1 mb-3">
+              <span className="text-3xl font-bold text-emerald-600">{getTargetWeight()}</span>
+              <span className="text-stone-400 font-medium">lbs goal</span>
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <input
+              type="number"
+              inputMode="decimal"
+              value={targetInput}
+              onChange={e => { setTargetInput(e.target.value); setTargetSaved(false); }}
+              placeholder={targetSaved ? getTargetWeight()?.toString() : 'Set goal weight'}
+              className="flex-1 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-stone-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
+            />
+            <span className="self-center text-stone-400 font-medium text-sm">lbs</span>
+            <button
+              onClick={handleSaveTarget}
+              disabled={!targetInput || targetSaved}
+              className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-2xl px-5 py-3 transition-colors disabled:opacity-40"
+            >
+              <Check size={18} />
+            </button>
+          </div>
+          {data.weight && getTargetWeight() && (
+            <p className="text-xs text-stone-400 mt-2">
+              {data.weight > getTargetWeight()!
+                ? `${Math.round(data.weight - getTargetWeight()!)} lbs to goal`
+                : '🎯 At or below goal weight!'}
+            </p>
+          )}
         </section>
 
         {/* Activities */}
