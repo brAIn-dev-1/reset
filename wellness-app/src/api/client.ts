@@ -61,6 +61,19 @@ export async function analyzeMeal(imageDataUrl: string): Promise<MealAnalysis> {
   return res.json();
 }
 
+export async function analyzeMealFromText(description: string): Promise<MealAnalysis> {
+  const res = await fetch('/api/analyze-meal-text', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ description }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`${res.status}: ${body || res.statusText}`);
+  }
+  return res.json();
+}
+
 export async function analyzeWater(imageDataUrl: string): Promise<WaterAnalysis> {
   const res = await fetch('/api/analyze-water', {
     method: 'POST',

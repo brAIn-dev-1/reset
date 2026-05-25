@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Camera, Droplets, Plus, Trash2, ChevronDown, ChevronUp, Loader2, UtensilsCrossed } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Camera, Droplets, Plus, Trash2, ChevronDown, ChevronUp, Loader2, UtensilsCrossed, PencilLine } from 'lucide-react';
 import { useDailyData } from '../hooks/useDailyData';
-import { analyzeMeal, analyzeWater, capturePhoto, resizeForApi } from '../api/client';
+import { analyzeMeal, analyzeMealFromText, analyzeWater, capturePhoto, resizeForApi } from '../api/client';
 import ProgressBar from '../components/ProgressBar';
 import type { Meal, WaterEntry } from '../types';
 import { CALORIE_GOAL, WATER_GOAL_ML, WATER_GLASS_ML } from '../types';
@@ -22,11 +22,15 @@ const QUICK_WATER = [
 export default function NutritionPage() {
   const { data, addMeal, removeMeal, addWater, removeWater } = useDailyData();
   const [analyzingMeal, setAnalyzingMeal] = useState(false);
+  const [analyzingTextMeal, setAnalyzingTextMeal] = useState(false);
   const [analyzingWater, setAnalyzingWater] = useState(false);
   const [expandedMeal, setExpandedMeal] = useState<string | null>(null);
   const [mealError, setMealError] = useState('');
   const [waterError, setWaterError] = useState('');
   const [showQuickWater, setShowQuickWater] = useState(false);
+  const [showTextInput, setShowTextInput] = useState(false);
+  const [textInput, setTextInput] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const totalCalories = data.meals.reduce((s, m) => s + m.calories, 0);
   const totalWaterMl = data.waterEntries.reduce((s, w) => s + w.amount, 0);
@@ -35,15 +39,16 @@ export default function NutritionPage() {
 
   const handleAddMeal = async () => {
     setMealError('');
+    setShowTextInput(false);
     try {
       const raw = await capturePhoto();
       setAnalyzingMeal(true);
-      const apiImage = await resizeForApi(raw);   // resize for Claude
-      const result = await analyzeMeal(apiImage); // apiImage discarded after this
+      const apiImage = await resizeForApi(raw);
+      const result = await analyzeMeal(apiImage);
       const meal: Meal = {
         id: uid(),
         timestamp: new Date().toISOString(),
-        imageDataUrl: '',  // not stored — photo discarded after estimation
+        imageDataUrl: '',
         description: result.description,
         calories: result.calories,
         items: result.items ?? [],
@@ -61,17 +66,58 @@ export default function NutritionPage() {
     }
   };
 
+  const handleAddMealFromText = async () => {
+    const desc = textInput.trim();
+    if (!desc) return;
+    setMealError('');
+    try {
+      setAnalyzingTextMeal(true);
+      const result = await analyzeMealFromText(desc);
+      const meal: Meal = {
+        id: uid(),
+        timestamp: new Date().toISOString(),
+        imageDataUrl: '',
+        description: result.description,
+        calories: result.calories,
+        items: result.items ?? [],
+        notes: result.notes ?? '',
+      };
+      addMeal(meal);
+      setShowTextInput(false);
+      setTextInput('');
+    } catch (err) {
+      const msg = (err as Error).message;
+      console.error('Text meal analysis error:', msg);
+      setMealError(`Analysis failed: ${msg}`);
+    } finally {
+      setAnalyzingTextMeal(false);
+    }
+  };
+
+  const openTextInput = () => {
+    setMealError('');
+    setShowTextInput(true);
+    // slight delay so the panel renders before focusing
+    setTimeout(() => textareaRef.current?.focus(), 50);
+  };
+
+  const cancelTextInput = () => {
+    setShowTextInput(false);
+    setTextInput('');
+    setMealError('');
+  };
+
   const handlePhotoWater = async () => {
     setWaterError('');
     try {
       const raw = await capturePhoto();
       setAnalyzingWater(true);
       const apiImage = await resizeForApi(raw);
-      const result = await analyzeWater(apiImage); // apiImage discarded after this
+      const result = await analyzeWater(apiImage);
       const entry: WaterEntry = {
         id: uid(),
         timestamp: new Date().toISOString(),
-        imageDataUrl: undefined,  // not stored
+        imageDataUrl: undefined,
         amount: result.amount,
         label: result.label,
       };
@@ -100,11 +146,15 @@ export default function NutritionPage() {
   };
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const busy = analyzingMeal || analyzingTextMeal;
 
   return (
     <div className="min-h-screen bg-orange-50 pb-24">
       {/* Header */}
-      <div className="bg-gradient-to-br from-orange-500 to-orange-400 px-6 pt-14 pb-8 text-white" style={{ paddingTop: 'max(3.5rem, env(safe-area-inset-top))' }}>
+      <div
+        className="bg-gradient-to-br from-orange-500 to-orange-400 px-6 pb-8 text-white"
+        style={{ paddingTop: 'max(3.5rem, env(safe-area-inset-top))' }}
+      >
         <p className="text-orange-100 text-sm font-medium mb-1">{today}</p>
         <h1 className="text-3xl font-bold mb-6">Nutrition</h1>
         <div className="space-y-4">
@@ -137,10 +187,10 @@ export default function NutritionPage() {
             <span className="text-sm text-stone-500">{totalCalories.toLocaleString()} kcal</span>
           </div>
 
-          {data.meals.length === 0 && (
+          {data.meals.length === 0 && !showTextInput && (
             <div className="bg-white rounded-3xl p-6 text-center text-stone-400 border border-stone-100">
-              <Camera size={32} className="mx-auto mb-2 opacity-40" />
-              <p className="text-sm">Take a photo of your first meal</p>
+              <UtensilsCrossed size={32} className="mx-auto mb-2 opacity-40" />
+              <p className="text-sm">Log a meal by photo or description</p>
             </div>
           )}
 
@@ -188,19 +238,62 @@ export default function NutritionPage() {
             ))}
           </div>
 
+          {/* Inline text input panel */}
+          {showTextInput && (
+            <div className="mt-3 bg-white rounded-3xl p-4 shadow-sm border border-stone-100">
+              <p className="text-sm font-semibold text-stone-700 mb-2">Describe your meal</p>
+              <textarea
+                ref={textareaRef}
+                value={textInput}
+                onChange={e => setTextInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleAddMealFromText();
+                }}
+                placeholder="e.g. 2 scrambled eggs, toast with butter, glass of OJ"
+                rows={3}
+                className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-stone-700 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none"
+              />
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={handleAddMealFromText}
+                  disabled={!textInput.trim() || analyzingTextMeal}
+                  className="flex-1 flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-2xl py-3 transition-colors disabled:opacity-60"
+                >
+                  {analyzingTextMeal
+                    ? <><Loader2 size={16} className="animate-spin" /> Estimating…</>
+                    : 'Estimate Calories'}
+                </button>
+                <button
+                  onClick={cancelTextInput}
+                  className="px-5 text-stone-400 font-medium text-sm rounded-2xl bg-stone-100 transition-colors hover:bg-stone-200"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
           {mealError && <p className="text-sm text-red-500 mt-2 text-center">{mealError}</p>}
 
-          <button
-            onClick={handleAddMeal}
-            disabled={analyzingMeal}
-            className="mt-3 w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-semibold rounded-2xl py-4 transition-colors disabled:opacity-60"
-          >
-            {analyzingMeal ? (
-              <><Loader2 size={18} className="animate-spin" /> Analyzing meal…</>
-            ) : (
-              <><Camera size={18} /> Add Meal Photo</>
-            )}
-          </button>
+          {/* Action buttons — Photo + Type it in */}
+          <div className="flex gap-3 mt-3">
+            <button
+              onClick={handleAddMeal}
+              disabled={busy}
+              className="flex-1 flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-semibold rounded-2xl py-4 transition-colors disabled:opacity-60"
+            >
+              {analyzingMeal
+                ? <><Loader2 size={18} className="animate-spin" /> Analyzing…</>
+                : <><Camera size={18} /> Photo</>}
+            </button>
+            <button
+              onClick={openTextInput}
+              disabled={busy || showTextInput}
+              className="flex-1 flex items-center justify-center gap-2 bg-orange-100 hover:bg-orange-200 active:bg-orange-300 text-orange-600 font-semibold rounded-2xl py-4 transition-colors disabled:opacity-50"
+            >
+              <PencilLine size={18} /> Type it in
+            </button>
+          </div>
         </section>
 
         {/* Water section */}
@@ -258,11 +351,9 @@ export default function NutritionPage() {
                 disabled={analyzingWater}
                 className="w-full flex items-center justify-center gap-2 bg-sky-500 text-white font-semibold rounded-xl py-3 mt-1 transition-colors disabled:opacity-60"
               >
-                {analyzingWater ? (
-                  <><Loader2 size={16} className="animate-spin" /> Analyzing…</>
-                ) : (
-                  <><Camera size={16} /> Use Photo</>
-                )}
+                {analyzingWater
+                  ? <><Loader2 size={16} className="animate-spin" /> Analyzing…</>
+                  : <><Camera size={16} /> Use Photo</>}
               </button>
               <button
                 onClick={() => setShowQuickWater(false)}
