@@ -108,15 +108,29 @@ function LineChart({
 
   const py = (v: number) => PT + (1 - (v - lo) / range) * PLOT_H;
 
-  // Build SVG path (handles gaps for null values)
-  let pathD = '';
+  // Build two SVG paths:
+  //   solidD — colored line through actual data points
+  //   gapD   — gray dotted bridge between the last known point and the next one
+  let solidD = '';
+  let gapD = '';
   let gapped = true;
+  let lastKnown: { i: number; v: number } | null = null;
+
   data.forEach((v, i) => {
     if (v === null) { gapped = true; return; }
-    pathD += gapped
+
+    // If there's a gap since the last known point, draw a dotted bridge
+    if (gapped && lastKnown !== null) {
+      gapD += `M ${pxFn(lastKnown.i).toFixed(1)} ${py(lastKnown.v).toFixed(1)} `
+            + `L ${pxFn(i).toFixed(1)} ${py(v).toFixed(1)} `;
+    }
+
+    solidD += gapped
       ? `M ${pxFn(i).toFixed(1)} ${py(v).toFixed(1)} `
       : `L ${pxFn(i).toFixed(1)} ${py(v).toFixed(1)} `;
+
     gapped = false;
+    lastKnown = { i, v };
   });
 
   const yMid = (rawMin + rawMax) / 2;
@@ -147,8 +161,14 @@ function LineChart({
         </>
       )}
 
-      {/* Line */}
-      <path d={pathD} fill="none" stroke={color} strokeWidth="2.5"
+      {/* Gray dotted bridge across gaps */}
+      {gapD && (
+        <path d={gapD} fill="none" stroke="#cbd5e1" strokeWidth="1.5"
+          strokeDasharray="3 4" strokeLinecap="round" />
+      )}
+
+      {/* Solid colored line through actual data */}
+      <path d={solidD} fill="none" stroke={color} strokeWidth="2.5"
         strokeLinecap="round" strokeLinejoin="round" />
 
       {/* Dots */}
