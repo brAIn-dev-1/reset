@@ -331,6 +331,7 @@ export default function NutritionPage() {
 
           {waterError && <p className="text-sm text-red-500 mb-2 text-center">{waterError}</p>}
 
+          {/* Quick-add preset panel */}
           {showQuickWater && (
             <div className="bg-white rounded-3xl p-4 mb-3 shadow-sm border border-stone-100 space-y-2">
               <p className="text-sm font-semibold text-stone-600 mb-2">Quick add</p>
@@ -347,15 +348,6 @@ export default function NutritionPage() {
                 ))}
               </div>
               <button
-                onClick={handlePhotoWater}
-                disabled={analyzingWater}
-                className="w-full flex items-center justify-center gap-2 bg-sky-500 text-white font-semibold rounded-xl py-3 mt-1 transition-colors disabled:opacity-60"
-              >
-                {analyzingWater
-                  ? <><Loader2 size={16} className="animate-spin" /> Analyzing…</>
-                  : <><Camera size={16} /> Use Photo</>}
-              </button>
-              <button
                 onClick={() => setShowQuickWater(false)}
                 className="w-full text-stone-400 text-sm py-1"
               >
@@ -364,14 +356,25 @@ export default function NutritionPage() {
             </div>
           )}
 
-          {!showQuickWater && (
+          {/* Action buttons — Photo + Quick Add */}
+          <div className="flex gap-3">
             <button
-              onClick={() => setShowQuickWater(true)}
-              className="w-full flex items-center justify-center gap-2 bg-sky-500 hover:bg-sky-600 active:bg-sky-700 text-white font-semibold rounded-2xl py-4 transition-colors"
+              onClick={handlePhotoWater}
+              disabled={analyzingWater}
+              className="flex-1 flex items-center justify-center gap-2 bg-sky-500 hover:bg-sky-600 active:bg-sky-700 text-white font-semibold rounded-2xl py-4 transition-colors disabled:opacity-60"
             >
-              <Plus size={18} /> Log Water
+              {analyzingWater
+                ? <><Loader2 size={18} className="animate-spin" /> Analyzing…</>
+                : <><Camera size={18} /> Photo</>}
             </button>
-          )}
+            <button
+              onClick={() => setShowQuickWater(v => !v)}
+              disabled={analyzingWater}
+              className="flex-1 flex items-center justify-center gap-2 bg-sky-100 hover:bg-sky-200 active:bg-sky-300 text-sky-600 font-semibold rounded-2xl py-4 transition-colors disabled:opacity-50"
+            >
+              <Plus size={18} /> Quick Add
+            </button>
+          </div>
         </section>
       </div>
     </div>
