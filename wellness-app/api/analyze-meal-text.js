@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { checkAuth, checkRateLimit } from './_utils.js';
 
 export const config = {
   api: { bodyParser: { sizeLimit: '1mb' } },
@@ -7,6 +8,8 @@ export const config = {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (!checkAuth(req, res)) return;
+  if (!checkRateLimit(req, res)) return;
 
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return res.status(500).json({ error: 'ANTHROPIC_API_KEY is not set in environment variables' });

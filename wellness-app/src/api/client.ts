@@ -11,6 +11,18 @@ interface WaterAnalysis {
   confidence: string;
 }
 
+// Sent with every API request so the server can reject calls that
+// didn't come from this app. Set VITE_API_SECRET in .env (local)
+// and API_SECRET in Vercel environment variables (production).
+const APP_TOKEN = import.meta.env.VITE_API_SECRET ?? '';
+
+function authHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    ...(APP_TOKEN ? { 'X-App-Token': APP_TOKEN } : {}),
+  };
+}
+
 function extractMimeType(dataUrl: string): string {
   const match = dataUrl.match(/^data:(image\/[a-zA-Z+]+);base64,/);
   const type = match?.[1] ?? 'image/jpeg';
@@ -48,7 +60,7 @@ export function resizeForApi(dataUrl: string): Promise<string> {
 export async function analyzeMeal(imageDataUrl: string): Promise<MealAnalysis> {
   const res = await fetch('/api/analyze-meal', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify({
       imageBase64: extractBase64(imageDataUrl),
       mimeType: 'image/jpeg',
@@ -64,7 +76,7 @@ export async function analyzeMeal(imageDataUrl: string): Promise<MealAnalysis> {
 export async function analyzeMealFromText(description: string): Promise<MealAnalysis> {
   const res = await fetch('/api/analyze-meal-text', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify({ description }),
   });
   if (!res.ok) {
@@ -77,7 +89,7 @@ export async function analyzeMealFromText(description: string): Promise<MealAnal
 export async function analyzeWater(imageDataUrl: string): Promise<WaterAnalysis> {
   const res = await fetch('/api/analyze-water', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify({
       imageBase64: extractBase64(imageDataUrl),
       mimeType: 'image/jpeg',
