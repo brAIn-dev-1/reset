@@ -309,13 +309,8 @@ function generateYesterdaySummary(yesterday: DayData | null): string {
 
   const cals    = yesterday.meals.reduce((s, m) => s + m.calories, 0);
   const waterMl = yesterday.waterEntries.reduce((s, w) => s + w.amount, 0);
-  const medMins = yesterday.meditationMinutes;
-  const exerciseDone = [yesterday.cardio, yesterday.stretched, yesterday.resistance]
-    .filter(v => v === true).length;
-  const exerciseLogged = [yesterday.cardio, yesterday.stretched, yesterday.resistance]
-    .filter(v => v !== null).length;
 
-  const hasAnyData = cals > 0 || waterMl > 0 || medMins > 0 || exerciseLogged > 0 || yesterday.weight != null;
+  const hasAnyData = cals > 0 || waterMl > 0 || yesterday.weight != null;
   if (!hasAnyData) return "Nothing logged yesterday — keep building the habit!";
 
   const wins: string[] = [];
@@ -325,14 +320,7 @@ function generateYesterdaySummary(yesterday: DayData | null): string {
   else if (cals > 2000)           focus.push('calories');
 
   if (waterMl >= 2000)            wins.push('hydration');
-  else if (waterMl > 0)           focus.push('water');
   else                            focus.push('water');
-
-  if (medMins >= 10)              wins.push('meditation');
-  else                            focus.push('meditation');
-
-  if (exerciseDone >= 2)          wins.push('exercise');
-  else if (exerciseLogged > 0 && exerciseDone < 2) focus.push('movement');
 
   let msg: string;
   if (wins.length > 0 && focus.length > 0) {

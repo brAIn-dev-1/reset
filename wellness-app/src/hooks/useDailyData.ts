@@ -21,15 +21,7 @@ const DEFAULT_DAY = (date: string): DayData => ({
   date,
   meals: [],
   waterEntries: [],
-  gratitude: '',
-  meditationMinutes: 0,
   weight: null,
-  cardio: null,
-  stretched: null,
-  resistance: null,
-  connection: null,
-  helpedSomeone: null,
-  volunteered: null,
 });
 
 function loadDay(date: string): DayData {
@@ -116,14 +108,6 @@ export function useDailyData(dateOverride?: string) {
     });
   }, []);
 
-  const addMeditationMinutes = useCallback((minutes: number) => {
-    setData(prev => {
-      const next = { ...prev, meditationMinutes: prev.meditationMinutes + minutes };
-      saveDay(next);
-      return next;
-    });
-  }, []);
-
   return {
     data,
     update,
@@ -131,7 +115,6 @@ export function useDailyData(dateOverride?: string) {
     removeMeal,
     addWater,
     removeWater,
-    addMeditationMinutes,
   };
 }
 
@@ -181,19 +164,4 @@ export function getTargetWeight(): number | null {
 
 export function saveTargetWeight(w: number): void {
   localStorage.setItem(TW_KEY, String(w));
-}
-
-// ── Streak helpers ───────────────────────────────────────────────
-/** Days sorted newest-first. Skips null (not logged) days, breaks on false. */
-export function calcStreak(
-  allDays: DayData[],
-  field: 'cardio' | 'stretched' | 'resistance' | 'connection' | 'helpedSomeone' | 'volunteered',
-): number {
-  let streak = 0;
-  for (const d of allDays) {
-    if (d[field] === true) streak++;
-    else if (d[field] === false) break;
-    // null = never opened app that day → don't break, don't count
-  }
-  return streak;
 }

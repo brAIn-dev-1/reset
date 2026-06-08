@@ -1,12 +1,10 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { TrendingUp, Salad, Brain, Dumbbell, Users } from 'lucide-react';
+import { TrendingUp, Salad, Dumbbell } from 'lucide-react';
 
 const tabs = [
   { to: '/',           icon: TrendingUp, label: 'Momentum',  exact: true  },
   { to: '/nutrition',  icon: Salad,      label: 'Nutrition', exact: false },
-  { to: '/mind',       icon: Brain,      label: 'Mind',      exact: false },
   { to: '/body',       icon: Dumbbell,   label: 'Body',      exact: false },
-  { to: '/community',  icon: Users,      label: 'Community', exact: false },
 ];
 
 export default function BottomNav() {

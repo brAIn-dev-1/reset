@@ -1,50 +1,6 @@
 import { useState } from 'react';
-import { Scale, Flame, PersonStanding, Dumbbell, Check, X, Target, Pencil } from 'lucide-react';
+import { Scale, Check, X, Target, Pencil } from 'lucide-react';
 import { useDailyData, getAllDays, getTargetWeight, saveTargetWeight } from '../hooks/useDailyData';
-
-type YesNo = boolean | null;
-
-interface ActivityRowProps {
-  icon: React.ReactNode;
-  label: string;
-  value: YesNo;
-  onChange: (v: YesNo) => void;
-}
-
-function ActivityRow({ icon, label, value, onChange }: ActivityRowProps) {
-  return (
-    <div className="flex items-center justify-between py-3 border-b border-stone-100 last:border-0">
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-500">
-          {icon}
-        </div>
-        <span className="font-medium text-stone-700">{label}</span>
-      </div>
-      <div className="flex gap-2">
-        <button
-          onClick={() => onChange(value === true ? null : true)}
-          className={`w-14 h-9 rounded-xl text-sm font-semibold transition-colors ${
-            value === true
-              ? 'bg-emerald-500 text-white'
-              : 'bg-stone-100 text-stone-400'
-          }`}
-        >
-          Yes
-        </button>
-        <button
-          onClick={() => onChange(value === false ? null : false)}
-          className={`w-14 h-9 rounded-xl text-sm font-semibold transition-colors ${
-            value === false
-              ? 'bg-red-400 text-white'
-              : 'bg-stone-100 text-stone-400'
-          }`}
-        >
-          No
-        </button>
-      </div>
-    </div>
-  );
-}
 
 function formatShortDate(dateStr: string) {
   const d = new Date(dateStr + 'T00:00:00');
@@ -112,13 +68,6 @@ export default function ExercisePage() {
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   const target = getTargetWeight();
 
-  const activityScore = [data.cardio, data.stretched, data.resistance].filter(v => v === true).length;
-  const subtitle = activityScore === 0
-    ? 'Log today\'s movement'
-    : activityScore === 3
-    ? 'Crushed it today! 🎉'
-    : `${activityScore}/3 activities done`;
-
   return (
     <div className="min-h-screen bg-emerald-50 pb-24">
       {/* Header */}
@@ -128,7 +77,7 @@ export default function ExercisePage() {
       >
         <p className="text-emerald-100 text-sm font-medium mb-1">{today}</p>
         <h1 className="text-3xl font-bold">Body</h1>
-        <p className="text-emerald-100 text-sm mt-1">{subtitle}</p>
+        <p className="text-emerald-100 text-sm mt-1">Track your weight and progress</p>
 
         {/* Target weight — inline edit */}
         <div className="mt-3">
@@ -215,54 +164,6 @@ export default function ExercisePage() {
             </p>
           )}
         </section>
-
-        {/* Activities */}
-        <section className="bg-white rounded-3xl p-5 shadow-sm border border-stone-100">
-          <h2 className="text-lg font-bold text-stone-800 mb-2">Activity Check-in</h2>
-          <p className="text-sm text-stone-400 mb-4">Did you do any of these today?</p>
-
-          <ActivityRow
-            icon={<Flame size={18} />}
-            label="Intense Cardio"
-            value={data.cardio}
-            onChange={v => update({ cardio: v })}
-          />
-          <ActivityRow
-            icon={<PersonStanding size={18} />}
-            label="Stretching"
-            value={data.stretched}
-            onChange={v => update({ stretched: v })}
-          />
-          <ActivityRow
-            icon={<Dumbbell size={18} />}
-            label="Resistance Training"
-            value={data.resistance}
-            onChange={v => update({ resistance: v })}
-          />
-        </section>
-
-        {/* Activity summary chips */}
-        <div className="flex gap-2 flex-wrap">
-          {[
-            { label: 'Cardio', value: data.cardio },
-            { label: 'Stretch', value: data.stretched },
-            { label: 'Resistance', value: data.resistance },
-          ].map(({ label, value }) => (
-            <div
-              key={label}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium ${
-                value === true
-                  ? 'bg-emerald-100 text-emerald-700'
-                  : value === false
-                  ? 'bg-red-50 text-red-400'
-                  : 'bg-stone-100 text-stone-400'
-              }`}
-            >
-              {value === true ? <Check size={13} /> : value === false ? <X size={13} /> : null}
-              {label}
-            </div>
-          ))}
-        </div>
 
         {/* Weight history */}
         <WeightHistory />
