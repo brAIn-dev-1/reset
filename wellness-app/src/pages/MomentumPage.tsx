@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { TrendingUp, ChevronRight } from 'lucide-react';
-import { getLast14DatesData, getAllDays, getTargetWeight, calcStreak } from '../hooks/useDailyData';
+import { getLast14DatesData, getTargetWeight } from '../hooks/useDailyData';
 import type { DayData } from '../types';
 
 // ── Constants ────────────────────────────────────────────────────
@@ -224,32 +224,6 @@ function BarChart({ data, color }: { data: (number | null)[]; color: string }) {
   );
 }
 
-// ── Streak Dot Row ────────────────────────────────────────────────
-function StreakDots({
-  data,
-  field,
-}: {
-  data: (DayData | null)[];
-  field: 'cardio' | 'stretched' | 'resistance';
-}) {
-  return (
-    <div className="flex gap-1 mt-3">
-      {data.map((d, i) => {
-        const val = d?.[field] ?? null;
-        return (
-          <div key={i} title={d?.date ?? ''}
-            className={`flex-1 h-5 rounded-md transition-colors ${
-              val === true  ? 'bg-emerald-400' :
-              val === false ? 'bg-red-300' :
-              'bg-stone-100'
-            }`}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
 // ── Chart card wrapper (tappable) ─────────────────────────────────
 function ChartCard({
   title,
@@ -280,37 +254,6 @@ function ChartCard({
       </div>
       {children}
     </div>
-  );
-}
-
-// ── Streak card ───────────────────────────────────────────────────
-function StreakCard({
-  title,
-  streak,
-  data,
-  field,
-  to,
-}: {
-  title: string;
-  streak: number;
-  data: (DayData | null)[];
-  field: 'cardio' | 'stretched' | 'resistance';
-  to?: string;
-}) {
-  return (
-    <ChartCard title={title} to={to}>
-      <div className="flex items-baseline gap-2">
-        <span className="text-4xl font-bold text-stone-800 tabular-nums">{streak}</span>
-        <span className="text-stone-500 font-medium">
-          day{streak !== 1 ? 's' : ''} in a row{streak >= 3 ? ' 🔥' : ''}
-        </span>
-      </div>
-      <StreakDots data={data} field={field} />
-      <div className="flex justify-between mt-1.5">
-        <span className="text-[10px] text-stone-300">14 days ago</span>
-        <span className="text-[10px] text-stone-300">Today</span>
-      </div>
-    </ChartCard>
   );
 }
 
@@ -407,7 +350,6 @@ function generateYesterdaySummary(yesterday: DayData | null): string {
 // ── Main Page ─────────────────────────────────────────────────────
 export default function MomentumPage() {
   const last14 = getLast14DatesData();       // null | DayData[], index 0 = oldest
-  const allDays = getAllDays();               // newest first, for streaks
   const targetWeight = getTargetWeight();
 
   const today = new Date().toLocaleDateString('en-US', {
@@ -430,25 +372,12 @@ export default function MomentumPage() {
     return t > 0 ? Math.round(t * ML_TO_OZ) : null;
   });
 
-  const meditationData = last14.map(d => {
-    if (!d) return null;
-    return d.meditationMinutes > 0 ? d.meditationMinutes : null;
-  });
-
   // ── Summaries ──────────────────────────────────────────────────
   const validWeights = weightHistory.data.filter((v): v is number => v !== null);
   const latestWeight = validWeights.at(-1) ?? null;
 
   const avgCals  = avg(calorieData);
   const avgWater = avg(waterOzData);
-  const totalMed = meditationData
-    .filter((v): v is number => v !== null)
-    .reduce((a, b) => a + b, 0) || null;
-
-  // ── Streaks ────────────────────────────────────────────────────
-  const stretchStreak    = calcStreak(allDays, 'stretched');
-  const cardioStreak     = calcStreak(allDays, 'cardio');
-  const resistanceStreak = calcStreak(allDays, 'resistance');
 
   // ── Daily insight ──────────────────────────────────────────────
   const dailyMessage     = getDailyMessage();
@@ -519,41 +448,6 @@ export default function MomentumPage() {
           <BarChart data={waterOzData} color="#0EA5E9" />
         </ChartCard>
 
-        {/* 4. Meditation — navigates to Mind */}
-        <ChartCard
-          title="Meditation per Day"
-          subtitle={totalMed ? `Last 14 days: ${totalMed} min total` : 'No sessions logged yet'}
-          to="/mind"
-        >
-          <BarChart data={meditationData} color="#A855F7" />
-        </ChartCard>
-
-        {/* 5. Stretching streak — navigates to Body */}
-        <StreakCard
-          title="Stretching Streak"
-          streak={stretchStreak}
-          data={last14}
-          field="stretched"
-          to="/body"
-        />
-
-        {/* 6. Cardio streak — navigates to Body */}
-        <StreakCard
-          title="Cardio Streak"
-          streak={cardioStreak}
-          data={last14}
-          field="cardio"
-          to="/body"
-        />
-
-        {/* 7. Resistance streak — navigates to Body */}
-        <StreakCard
-          title="Resistance Training Streak"
-          streak={resistanceStreak}
-          data={last14}
-          field="resistance"
-          to="/body"
-        />
       </div>
     </div>
   );
