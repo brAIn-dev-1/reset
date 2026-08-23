@@ -337,7 +337,7 @@ export default function TodayPage() {
   };
 
   return (
-    <div className="min-h-screen bg-orange-50 pb-24">
+    <div className="min-h-screen bg-orange-50 pb-10">
 
       {/* ── Header ───────────────────────────────────────────── */}
       <div
