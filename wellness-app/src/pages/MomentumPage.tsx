@@ -378,7 +378,7 @@ export default function MomentumPage() {
       ? latestWeight > targetWeight
         ? `${latestWeight} lbs → ${Math.round(latestWeight - targetWeight)} lbs to goal (${targetWeight} lbs)`
         : `${latestWeight} lbs — 🎯 Goal reached! (${targetWeight} lbs)`
-      : `${latestWeight} lbs · Set a goal on the Body tab`
+      : `${latestWeight} lbs · Set a goal on the Today tab`
     : 'No weight logged yet';
 
   return (
@@ -408,7 +408,7 @@ export default function MomentumPage() {
 
       <div className="px-4 pt-5 space-y-4">
         {/* 1. Weight — starts from May 23, navigates to Body */}
-        <ChartCard title="Weight" subtitle={weightSubtitle} to="/body">
+        <ChartCard title="Weight" subtitle={weightSubtitle} to="/today">
           <LineChart
             data={weightHistory.data}
             labels={weightHistory.labels}
@@ -422,7 +422,7 @@ export default function MomentumPage() {
         <ChartCard
           title="Calories per Day"
           subtitle={avgCals ? `14-day avg: ${avgCals.toLocaleString()} kcal` : 'No meals logged yet'}
-          to="/nutrition"
+          to="/today"
         >
           <BarChart data={calorieData} color="#FF6D2A" />
         </ChartCard>
@@ -431,7 +431,7 @@ export default function MomentumPage() {
         <ChartCard
           title="Water per Day"
           subtitle={avgWater ? `14-day avg: ${avgWater} oz/day` : 'No water logged yet'}
-          to="/nutrition"
+          to="/today"
         >
           <BarChart data={waterOzData} color="#0EA5E9" />
         </ChartCard>

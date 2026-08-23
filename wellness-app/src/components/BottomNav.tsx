@@ -1,10 +1,9 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { TrendingUp, Salad, Dumbbell } from 'lucide-react';
+import { TrendingUp, CalendarDays } from 'lucide-react';
 
 const tabs = [
-  { to: '/',           icon: TrendingUp, label: 'Momentum',  exact: true  },
-  { to: '/nutrition',  icon: Salad,      label: 'Nutrition', exact: false },
-  { to: '/body',       icon: Dumbbell,   label: 'Body',      exact: false },
+  { to: '/',      icon: TrendingUp,   label: 'Momentum', exact: true  },
+  { to: '/today', icon: CalendarDays, label: 'Today',    exact: false },
 ];
 
 export default function BottomNav() {
